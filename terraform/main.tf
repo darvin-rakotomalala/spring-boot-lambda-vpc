@@ -161,12 +161,13 @@ module "rds" {
 #########################################################
 
 module "kms" {
-  source             = "./modules/kms"
-  naming_prefix      = local.naming_prefix
-  common_tags        = local.common_tags
-  current_account_id = data.aws_caller_identity.current.account_id
-  current_partition  = data.aws_partition.current.partition
-  primary_region     = var.primary_region
+  source              = "./modules/kms"
+  naming_prefix       = local.naming_prefix
+  common_tags         = local.common_tags
+  current_account_id  = data.aws_caller_identity.current.account_id
+  current_partition   = data.aws_partition.current.partition
+  primary_region      = var.primary_region
+  lambda_iam_role_arn = module.iam.lambda_iam_role_arn
 }
 
 #########################################################

@@ -98,10 +98,10 @@ data "aws_iam_policy_document" "kms" {
 }
 
 resource "aws_kms_key" "main" {
-  description             = "${var.naming_prefix}: secrets, RDS storage, logs, Lambda env, SNS"
-  enable_key_rotation     = true
-  rotation_period_in_days = 365
-  deletion_window_in_days = 30
+  description         = "${var.naming_prefix}: secrets, RDS storage, logs, Lambda env, SNS"
+  enable_key_rotation = true
+  # rotation_period_in_days = 90
+  deletion_window_in_days = 7
   policy                  = data.aws_iam_policy_document.kms.json
 }
 
@@ -161,6 +161,20 @@ resource "aws_kms_key" "secrets" {
         Condition = {
           StringEquals = {
             "aws:SourceAccount" = var.current_account_id
+          }
+        }
+      },
+      {
+        Sid      = "AllowLambdaRoleDecryptViaSecretsManager"
+        Effect   = "Allow"
+        Action   = ["kms:Decrypt", "kms:DescribeKey"]
+        Resource = ["*"]
+        Principal = {
+          AWS = [var.lambda_iam_role_arn]
+        }
+        Condition = {
+          StringEquals = {
+            "kms:ViaService" = "secretsmanager.${var.primary_region}.amazonaws.com"
           }
         }
       }

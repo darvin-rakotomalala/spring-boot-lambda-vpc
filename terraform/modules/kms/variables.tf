@@ -23,3 +23,8 @@ variable "current_partition" {
   description = "Current partition account ID"
   type        = string
 }
+
+variable "lambda_iam_role_arn" {
+  description = "ARN of the IAM role assumed by the Lambda function"
+  type        = string
+}

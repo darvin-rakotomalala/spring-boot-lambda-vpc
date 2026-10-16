@@ -1,0 +1,67 @@
+spring:
+  application:
+    name: crud-app-backend
+
+  jpa:
+    properties:
+      hibernate:
+        # Note: You can remove dialect in Spring Boot 3+ / Hibernate 6+
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          lob:
+            non_contextual_creation: 'true'
+          batch_size: '50'
+    hibernate:
+      ddl-auto: 'update'
+
+  datasource:
+    driver-class-name: com.amazonaws.secretsmanager.sql.AWSSecretsManagerPostgreSQLDriver
+    url: jdbc-secretsmanager:postgresql://ce-dev-rds-proxy.proxy-conyo2aki51n.us-east-1.rds.amazonaws.com:5432/lambdaappdb
+    username: ce-dev/rds/backend-db-credentials
+    # Small pool: each Lambda instance holds its own pool, and RDS Proxy
+    # multiplexes connections to the database.
+    hikari:
+      maximum-pool-size: 2
+      minimum-idle: 0
+      connection-timeout: 10000   # ms to wait for a connection before failing
+      idle-timeout: 60000         # ms; must be < max-lifetime
+      max-lifetime: 900000        # ms (15 min); keep below RDS Proxy's connection limits
+      initialization-fail-timeout: -1   # don't fail Lambda init if DB is briefly unreachable
+  sql:
+    init:
+      mode: always
+  main:
+    lazy-initialization: 'true'
+
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+    throw-exception-if-no-handler-found: 'true'
+
+  resources:
+    add-mappings: 'false'
+
+cors:
+  allowed:
+    origins: '*'
+
+application:
+  description: '@project.description@'
+  name: '@project.artifactId@'
+
+build:
+  timestamp: '@maven.build.timestamp@'
+  version: '@project.version@'
+
+server:
+  port: '8080'
+
+logging:
+  level:
+    root: INFO
+    com.zaxxer.hikari: INFO
+    # Turn these up temporarily when debugging queries:
+    #   org.hibernate.SQL: DEBUG
+    #   org.hibernate.orm.jdbc.bind: TRACE   (Hibernate 6; logs bound parameters)
+    org.hibernate.SQL: WARN
+    org.hibernate.type: WARN

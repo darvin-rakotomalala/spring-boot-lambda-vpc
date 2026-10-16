@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <springProperty scope="context" name="LOGS" source="modules.logging.logs.folder.path" defaultValue="./logs"/>
+    <springProperty scope="context" name="appName" source="modules.logging.application.name" defaultValue="UNKNOWN"/>
+    <property name="LOG_LEVEL_PATTERN" value="%-5level"/>
+
+    <!-- Shared by every profile. On Lambda, stdout is shipped to the function's
+         log group (SpringBoot_Lambda_Function_Logs) automatically. -->
+    <appender name="Console"
+              class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <Pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSS} | ${appName} | %-20.20thread | ${LOG_LEVEL_PATTERN} |
+                %-25.25logger{25} | %m%n
+            </Pattern>
+        </encoder>
+    </appender>
+
+    <!-- ============================================================
+         AWS Lambda (SPRING_PROFILES_ACTIVE=lambda)
+         Console only: the filesystem is read-only (except /tmp) and Lambda
+         already forwards stdout to CloudWatch. No background threads or
+         extra AWS API calls during init, which keeps SnapStart happy.
+         ============================================================ -->
+    <springProfile name="lambda">
+        <root level="INFO">
+            <appender-ref ref="Console"/>
+        </root>
+
+        <logger name="com.ce" level="INFO" additivity="false">
+            <appender-ref ref="Console"/>
+        </logger>
+    </springProfile>
+
+</configuration>

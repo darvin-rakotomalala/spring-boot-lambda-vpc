@@ -1,0 +1,196 @@
+name: Build & Deploy to AWS Lambda
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+  FUNCTION_NAME: ${{ vars.FUNCTION_NAME }}
+  ALIAS_NAME: ${{ vars.ALIAS_NAME }}   # must match var.lambda_alias_name in Terraform
+  ARTIFACT_BUCKET: ${{ vars.ARTIFACT_BUCKET }}
+
+permissions:
+  id-token: write       # Required for requesting the OIDC JWT
+  contents: read        # Required for actions/checkout
+  pull-requests: write  # Required for plan comments
+  issues: write
+
+# Avoid two deploys racing each other to move the alias
+concurrency:
+  group: deploy-lambda-dev
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+
+    # Every `run:` step executes inside the app folder (where pom.xml lives).
+    # `uses:` steps (checkout, setup-java, AWS creds) are not affected.
+    defaults:
+      run:
+        working-directory: crud-app-backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+          # pom.xml is not at the repo root, so tell the cache where to look
+          cache-dependency-path: crud-app-backend/pom.xml
+
+      - name: Build project with Maven
+        run: mvn clean package -DskipTests
+
+      - name: Rename JAR
+        run: |
+          cd target
+          mv crud-app-backend-0.0.1-SNAPSHOT-lambda-package.zip crud-app-backend.zip
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6.1.0
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload package to S3
+        id: upload
+        run: |
+          KEY="${FUNCTION_NAME}/${GITHUB_SHA}.zip"
+          aws s3 cp target/crud-app-backend.zip "s3://${ARTIFACT_BUCKET}/${KEY}"
+          echo "key=$KEY" >> "$GITHUB_OUTPUT"
+
+      # --publish creates a new numbered version. Because SnapStart is set to
+      # apply_on = PublishedVersions, that version gets its snapshot created here.
+      - name: Update code and publish new version
+        id: publish
+        run: |
+          VERSION=$(aws lambda update-function-code \
+            --function-name "$FUNCTION_NAME" \
+            --s3-bucket "$ARTIFACT_BUCKET" \
+            --s3-key "${{ steps.upload.outputs.key }}" \
+            --publish \
+            --query 'Version' \
+            --output text)
+
+          if [ -z "$VERSION" ] || [ "$VERSION" = "None" ] || [ "$VERSION" = '$LATEST' ]; then
+            echo "::error::No published version returned from update-function-code"
+            exit 1
+          fi
+
+          echo "Published version: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      # SnapStart takes time to optimize a new version (state goes Pending -> Active).
+      # Wait until it's Active so the alias never points at a version that isn't ready.
+      - name: Wait for published version to become Active
+        run: |
+          VERSION="${{ steps.publish.outputs.version }}"
+
+          if ! aws lambda wait function-active-v2 \
+                --function-name "$FUNCTION_NAME" \
+                --qualifier "$VERSION"; then
+            echo "::error::Version $VERSION did not become Active"
+            aws lambda get-function-configuration \
+              --function-name "$FUNCTION_NAME" \
+              --qualifier "$VERSION" \
+              --query '{State:State,StateReason:StateReason,StateReasonCode:StateReasonCode,LastUpdateStatus:LastUpdateStatus,LastUpdateStatusReason:LastUpdateStatusReason,Runtime:Runtime,Handler:Handler,SnapStart:SnapStart}' \
+              --output json
+            echo "---- recent function logs ----"
+            LOG_GROUP=$(aws lambda get-function-configuration \
+              --function-name "$FUNCTION_NAME" \
+              --query 'LoggingConfig.LogGroup' --output text)
+            echo "---- logs from $LOG_GROUP ----"
+            aws logs tail "$LOG_GROUP" --since 15m || true
+            exit 1
+          fi
+
+      - name: Verify SnapStart is on for the new version
+        run: |
+          STATUS=$(aws lambda get-function-configuration \
+            --function-name "$FUNCTION_NAME" \
+            --qualifier "${{ steps.publish.outputs.version }}" \
+            --query 'SnapStart.OptimizationStatus' \
+            --output text)
+
+          echo "SnapStart optimization status: $STATUS"
+          if [ "$STATUS" != "On" ]; then
+            echo "::error::SnapStart is not enabled on version ${{ steps.publish.outputs.version }}"
+            exit 1
+          fi
+
+      - name: Smoke test new version (runs inside the VPC)
+        run: |
+          VERSION="${{ steps.publish.outputs.version }}"
+
+          # REST API (v1) proxy event. Change SMOKE_PATH to an endpoint that hits the DB.
+          SMOKE_PATH="health"
+
+          cat > event.json <<EOF
+          {
+            "resource": "/{proxy+}",
+            "path": "/${SMOKE_PATH}",
+            "httpMethod": "GET",
+            "headers": { "Accept": "application/json" },
+            "multiValueHeaders": { "Accept": ["application/json"] },
+            "queryStringParameters": null,
+            "multiValueQueryStringParameters": null,
+            "pathParameters": { "proxy": "${SMOKE_PATH}" },
+            "stageVariables": null,
+            "requestContext": {
+              "resourcePath": "/{proxy+}",
+              "httpMethod": "GET",
+              "path": "/dev/${SMOKE_PATH}",
+              "stage": "dev",
+              "identity": { "sourceIp": "127.0.0.1" }
+            },
+            "body": null,
+            "isBase64Encoded": false
+          }
+          EOF
+
+          aws lambda invoke \
+            --function-name "$FUNCTION_NAME" \
+            --qualifier "$VERSION" \
+            --cli-binary-format raw-in-base64-out \
+            --cli-read-timeout 0 \
+            --payload file://event.json \
+            --log-type Tail \
+            --query 'LogResult' --output text \
+            out.json | base64 -d || true
+
+          cat out.json
+          if grep -q '"errorMessage"' out.json; then
+            echo "::error::Version $VERSION failed the smoke test"
+            exit 1
+          fi
+          STATUS=$(jq -r '.statusCode // empty' out.json)
+          if [ "$STATUS" != "200" ]; then
+            echo "::error::Smoke test returned status '$STATUS'"
+            exit 1
+          fi
+
+      # Move the alias (which API Gateway invokes) to the new version
+      - name: Point alias at the new version
+        run: |
+          aws lambda update-alias \
+            --function-name "$FUNCTION_NAME" \
+            --name "$ALIAS_NAME" \
+            --function-version "${{ steps.publish.outputs.version }}"
+
+      - name: Deployment summary
+        run: |
+          {
+            echo "### Lambda deployment"
+            echo "- Function: \`$FUNCTION_NAME\`"
+            echo "- Published version: \`${{ steps.publish.outputs.version }}\`"
+            echo "- Alias: \`$ALIAS_NAME\` → version \`${{ steps.publish.outputs.version }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

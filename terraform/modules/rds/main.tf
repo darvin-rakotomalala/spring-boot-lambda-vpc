@@ -3,7 +3,6 @@
 ############################################
 
 locals {
-  db_secret_arn  = aws_db_instance.this.master_user_secret[0].secret_arn
   db_port        = 5432
   db_log_exports = ["postgresql", "upgrade"]
 
@@ -58,16 +57,11 @@ resource "aws_db_instance" "this" {
   storage_encrypted     = true
   kms_key_id            = var.kms_key_arn
 
+  # Database / auth
   db_name  = var.db_name
   username = var.db_username
   port     = local.db_port
-
-  # RDS creates + rotates the master secret in Secrets Manager (encrypted with our CMK).
-  # The password never exists in Terraform code or state.
-  manage_master_user_password   = true
-  master_user_secret_kms_key_id = var.kms_key_arn
-
-  iam_database_authentication_enabled = true
+  password = var.random_password_db_master_result
 
   # Network
   db_subnet_group_name   = var.db_subnet_group_name
@@ -120,8 +114,7 @@ resource "aws_db_proxy" "this" {
   auth {
     auth_scheme = "SECRETS"
     secret_arn  = var.db_credentials_secret_arn
-    iam_auth    = var.proxy_iam_auth
-    description = "Master credentials (RDS-managed secret)"
+    description = "Master credentials form Secrets Manager)"
   }
 
   # The proxy must reach Secrets Manager through the endpoint.

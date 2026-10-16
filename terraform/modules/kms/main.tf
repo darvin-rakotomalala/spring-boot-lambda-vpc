@@ -95,98 +95,81 @@ data "aws_iam_policy_document" "kms" {
       values   = ["arn:${var.current_partition}:cloudwatch:${var.primary_region}:${var.current_account_id}:alarm:*"]
     }
   }
+
+  # --- Merged statements from the former aws_kms_key.secrets ---
+
+  statement {
+    sid = "AllowSecretsManagerServiceUse"
+    actions = [
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:ReEncrypt*",
+      "kms:GenerateDataKey*",
+      "kms:DescribeKey"
+    ]
+    resources = ["*"]
+    principals {
+      type        = "Service"
+      identifiers = ["secretsmanager.amazonaws.com"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [var.current_account_id]
+    }
+  }
+
+  statement {
+    # Required so RDS can create/manage the master-user secret on our behalf
+    # when aws_db_instance.main.manage_master_user_password = true
+    sid = "AllowRDSServiceUse"
+    actions = [
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:GenerateDataKey*",
+      "kms:DescribeKey",
+      "kms:CreateGrant"
+    ]
+    resources = ["*"]
+    principals {
+      type        = "Service"
+      identifiers = ["rds.amazonaws.com"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [var.current_account_id]
+    }
+  }
+
+  statement {
+    sid       = "AllowLambdaRoleDecryptViaSecretsManager"
+    actions   = ["kms:Decrypt", "kms:DescribeKey"]
+    resources = ["*"]
+    principals {
+      type        = "AWS"
+      identifiers = [var.lambda_iam_role_arn]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["secretsmanager.${var.primary_region}.amazonaws.com"]
+    }
+  }
 }
 
 resource "aws_kms_key" "main" {
-  description         = "${var.naming_prefix}: secrets, RDS storage, logs, Lambda env, SNS"
-  enable_key_rotation = true
-  # rotation_period_in_days = 90
+  description             = "${var.naming_prefix}: secrets, RDS storage, logs, Lambda env, SNS"
+  enable_key_rotation     = true
   deletion_window_in_days = 7
   policy                  = data.aws_iam_policy_document.kms.json
+
+  tags = merge(var.common_tags, {
+    Name = "${var.naming_prefix}-kms-key"
+  })
 }
 
 resource "aws_kms_alias" "main" {
-  name          = "alias/${var.naming_prefix}"
+  name          = "alias/${var.naming_prefix}-main-kms-key"
   target_key_id = aws_kms_key.main.key_id
-}
-
-# ---------- KMS key: Secrets Manager encryption ----------
-resource "aws_kms_key" "secrets" {
-  description             = "KMS key for Secrets Manager (DB credentials) encryption"
-  deletion_window_in_days = 7
-  enable_key_rotation     = true
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid       = "EnableIAMUserPermissions"
-        Effect    = "Allow"
-        Principal = { AWS = "arn:${var.current_partition}:iam::${var.current_account_id}:root" }
-        Action    = "kms:*"
-        Resource  = "*"
-      },
-      {
-        Sid       = "AllowSecretsManagerServiceUse"
-        Effect    = "Allow"
-        Principal = { Service = "secretsmanager.amazonaws.com" }
-        Action = [
-          "kms:Encrypt",
-          "kms:Decrypt",
-          "kms:ReEncrypt*",
-          "kms:GenerateDataKey*",
-          "kms:DescribeKey"
-        ]
-        Resource = "*"
-        Condition = {
-          StringEquals = {
-            "aws:SourceAccount" = var.current_account_id
-          }
-        }
-      },
-      {
-        # Required so RDS can create/manage the master-user secret on our behalf
-        # when aws_db_instance.main.manage_master_user_password = true
-        Sid       = "AllowRDSServiceUse"
-        Effect    = "Allow"
-        Principal = { Service = "rds.amazonaws.com" }
-        Action = [
-          "kms:Encrypt",
-          "kms:Decrypt",
-          "kms:GenerateDataKey*",
-          "kms:DescribeKey",
-          "kms:CreateGrant"
-        ]
-        Resource = "*"
-        Condition = {
-          StringEquals = {
-            "aws:SourceAccount" = var.current_account_id
-          }
-        }
-      },
-      {
-        Sid      = "AllowLambdaRoleDecryptViaSecretsManager"
-        Effect   = "Allow"
-        Action   = ["kms:Decrypt", "kms:DescribeKey"]
-        Resource = ["*"]
-        Principal = {
-          AWS = [var.lambda_iam_role_arn]
-        }
-        Condition = {
-          StringEquals = {
-            "kms:ViaService" = "secretsmanager.${var.primary_region}.amazonaws.com"
-          }
-        }
-      }
-    ]
-  })
-
-  tags = merge(var.common_tags, {
-    Name = "${var.naming_prefix}-secrets-kms-key"
-  })
-}
-
-resource "aws_kms_alias" "secrets" {
-  name          = "alias/${var.naming_prefix}-secrets"
-  target_key_id = aws_kms_key.secrets.key_id
 }

@@ -17,6 +17,12 @@ variable "db_username" {
   type = string
 }
 
+variable "random_password_db_master_result" {
+  description = "Random password db master result"
+  type        = string
+  sensitive   = true
+}
+
 variable "db_engine_version" {
   description = "Major version; RDS picks the latest minor and auto-upgrades minors."
   type        = string
@@ -91,16 +97,6 @@ variable "rds_proxy_policy_name" {
 variable "interface_endpoint" {
   description = "Map of interface VPC endpoint service to its endpoint ID"
   type        = string
-}
-
-variable "proxy_iam_auth" {
-  description = "REQUIRED forces clients to use IAM tokens (no password in the app). DISABLED = password from Secrets Manager."
-  type        = string
-
-  validation {
-    condition     = contains(["DISABLED", "REQUIRED"], var.proxy_iam_auth)
-    error_message = "proxy_iam_auth must be DISABLED or REQUIRED."
-  }
 }
 
 variable "proxy_max_connections_percent" {

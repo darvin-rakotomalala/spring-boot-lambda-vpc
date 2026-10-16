@@ -26,7 +26,6 @@ db_allocated_storage          = 20
 db_max_allocated_storage      = 200
 db_multi_az                   = true
 db_backup_retention_days      = 7
-proxy_iam_auth                = "DISABLED"
 proxy_max_connections_percent = 90
 lambda_handler                = "com.ce.StreamLambdaHandler::handleRequest"
 lambda_memory_mb              = 1536

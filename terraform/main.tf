@@ -56,12 +56,11 @@ module "iam" {
   github_org                = var.github_org
   github_repo               = var.github_repo
   current_partition         = data.aws_partition.current.partition
-  db_master_user_secret_arn = module.secrets.db_credentials_secret_arn
   db_username               = var.db_username
   kms_key_arn               = module.kms.kms_key_arn
   primary_region            = var.primary_region
-  proxy_iam_auth            = var.proxy_iam_auth
   rds_proxy_arn             = module.rds.rds_proxy_arn
+  db_credentials_secret_arn = module.secrets.db_credentials_secret_arn
 }
 
 #########################################################
@@ -95,7 +94,6 @@ module "lambda" {
   pc_min_capacity                  = var.pc_min_capacity
   pc_target_utilization            = var.pc_target_utilization
   private_subnet_ids               = module.vpc.private_subnet_ids
-  proxy_iam_auth                   = var.proxy_iam_auth
   random_password_db_master_result = module.secrets.random_password_db_master_result
   rds_db_port                      = module.rds.rds_db_port
   rds_proxy_endpoint               = module.rds.rds_proxy_endpoint
@@ -147,13 +145,13 @@ module "rds" {
   kms_key_arn                      = module.kms.kms_key_arn
   log_retention_days               = var.log_retention_days
   private_subnet_ids               = module.vpc.private_subnet_ids
-  proxy_iam_auth                   = var.proxy_iam_auth
   proxy_max_connections_percent    = var.proxy_max_connections_percent
   rds_enhanced_monitoring_role_arn = module.iam.rds_enhanced_monitoring_role_arn
   rds_proxy_policy_name            = module.iam.rds_proxy_policy_name
   rds_proxy_role_arn               = module.iam.rds_proxy_role_arn
   rds_proxy_security_group_id      = module.sg.rds_proxy_security_group_id
   db_credentials_secret_arn        = module.secrets.db_credentials_secret_arn
+  random_password_db_master_result = module.secrets.random_password_db_master_result
 }
 
 #########################################################
@@ -182,7 +180,7 @@ module "secrets" {
   db_username         = var.db_username
   rds_address         = module.rds.rds_address
   rds_port            = module.rds.rds_port
-  kms_secrets_key_arn = module.kms.kms_secrets_key_arn
+  kms_secrets_key_arn = module.kms.kms_key_arn
 }
 
 #########################################################

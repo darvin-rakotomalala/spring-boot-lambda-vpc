@@ -105,16 +105,6 @@ variable "environment" {
   type        = string
 }
 
-variable "proxy_iam_auth" {
-  description = "REQUIRED forces clients to use IAM tokens (no password in the app). DISABLED = password from Secrets Manager."
-  type        = string
-
-  validation {
-    condition     = contains(["DISABLED", "REQUIRED"], var.proxy_iam_auth)
-    error_message = "proxy_iam_auth must be DISABLED or REQUIRED."
-  }
-}
-
 variable "rds_db_port" {
   description = "Port on which the RDS database instance accepts connections"
   type        = string

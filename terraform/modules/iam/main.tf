@@ -85,7 +85,7 @@ data "aws_iam_policy_document" "proxy_trust" {
 data "aws_iam_policy_document" "proxy_perms" {
   statement {
     actions   = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"]
-    resources = [var.db_master_user_secret_arn]
+    resources = [var.db_credentials_secret_arn]
   }
   statement {
     actions   = ["kms:Decrypt"]
@@ -146,7 +146,7 @@ data "aws_iam_policy_document" "lambda_inline" {
       "secretsmanager:GetSecretValue",
       "secretsmanager:DescribeSecret",
     ]
-    resources = [var.db_master_user_secret_arn]
+    resources = [var.db_credentials_secret_arn]
   }
 
   statement {
@@ -167,15 +167,6 @@ data "aws_iam_policy_document" "lambda_inline" {
     sid       = "WriteOwnLogs"
     actions   = ["logs:CreateLogStream", "logs:PutLogEvents"]
     resources = ["arn:${var.current_partition}:logs:${var.primary_region}:${var.current_account_id}:log-group:${local.lambda_log_group}:*"]
-  }
-
-  dynamic "statement" {
-    for_each = var.proxy_iam_auth == "REQUIRED" ? [1] : []
-    content {
-      sid       = "ConnectToProxyAsDbUser"
-      actions   = ["rds-db:connect"]
-      resources = ["arn:${var.current_partition}:rds-db:${var.primary_region}:${var.current_account_id}:dbuser:${local.proxy_resource_id}/${var.db_username}"]
-    }
   }
 }
 

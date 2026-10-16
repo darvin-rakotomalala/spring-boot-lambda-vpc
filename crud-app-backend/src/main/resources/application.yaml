@@ -2,33 +2,56 @@ spring:
   application:
     name: crud-app-backend
 
+  # ── JPA / Hibernate ──────────────────────────────────────────────────
+  # Nothing in this block may open a DB connection at startup. With Lambda
+  # SnapStart, startup runs while a version is being published (CI and
+  # Terraform both publish), so a connection attempt there fails the publish.
   jpa:
+    # Set explicitly so Spring Boot doesn't open a connection to detect the DB.
+    database: postgresql
+    hibernate:
+      # Schema is managed outside the app (Flyway/Liquibase/one-off script).
+      ddl-auto: none
     properties:
       hibernate:
-        # Note: You can remove dialect in Spring Boot 3+ / Hibernate 6+
+        # Required because JDBC metadata access is disabled below.
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        boot:
+          allow_jdbc_metadata_access: false
         jdbc:
-          lob:
-            non_contextual_creation: 'true'
-          batch_size: '50'
-    hibernate:
-      ddl-auto: 'update'
+          batch_size: 50
 
+  sql:
+    init:
+      mode: never
+
+  # ── DataSource (credentials are fetched from Secrets Manager) ────────
   datasource:
     driver-class-name: com.amazonaws.secretsmanager.sql.AWSSecretsManagerPostgreSQLDriver
-    url: jdbc-secretsmanager:postgresql://ce-dev-rds-pg.conyo2aki51n.us-east-1.rds.amazonaws.com:5432/lambdaappdb
+    url: jdbc-secretsmanager:postgresql://ce-dev-rds-proxy.proxy-conyo2aki51n.us-east-1.rds.amazonaws.com:5432/lambdaappdb
+    # With the Secrets Manager driver this is the secret name, not a DB user.
     username: ce-dev/rds/backend-db-credentials
+    hikari:
+      # Negative value: create the pool without trying to connect.
+      initialization-fail-timeout: -1
+      # No idle connections held across the SnapStart snapshot or a freeze.
+      minimum-idle: 0
+      # A Lambda environment serves one request at a time.
+      maximum-pool-size: 2
+      # Keep below API Gateway's 29s limit so failures return cleanly.
+      connection-timeout: 10000
+      idle-timeout: 600000
+      max-lifetime: 1800000
 
-  main:
-    lazy-initialization: 'true'
-
+  # ── Web ──────────────────────────────────────────────────────────────
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
-    throw-exception-if-no-handler-found: 'true'
+    throw-exception-if-no-handler-found: true
 
-  resources:
-    add-mappings: 'false'
+  web:
+    resources:
+      add-mappings: false
 
 cors:
   allowed:
@@ -43,7 +66,7 @@ build:
   version: '@project.version@'
 
 server:
-  port: '8080'
+  port: 8080
 
 logging:
   level:
@@ -51,6 +74,6 @@ logging:
     com.zaxxer.hikari: INFO
     # Turn these up temporarily when debugging queries:
     #   org.hibernate.SQL: DEBUG
-    #   org.hibernate.orm.jdbc.bind: TRACE   (Hibernate 6; logs bound parameters)
+    #   org.hibernate.orm.jdbc.bind: TRACE   (logs bound parameters)
     org.hibernate.SQL: WARN
     org.hibernate.type: WARN

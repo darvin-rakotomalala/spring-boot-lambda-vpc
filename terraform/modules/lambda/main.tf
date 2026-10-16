@@ -73,13 +73,6 @@ resource "aws_lambda_function" "app" {
   environment {
     variables = merge(
       {
-        DB_SECRET_ARN = var.random_password_db_master_result
-        DB_HOST       = var.rds_proxy_endpoint
-        DB_PORT       = tostring(var.rds_db_port)
-        DB_NAME       = var.db_name
-        DB_USER       = var.db_username
-        DB_IAM_AUTH   = tostring(var.proxy_iam_auth == "REQUIRED")
-        # SPRING_PROFILES_ACTIVE = var.environment
         JAVA_TOOL_OPTIONS = "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
       },
       var.lambda_environment,
@@ -95,6 +88,11 @@ resource "aws_lambda_function" "app" {
     log_group             = aws_cloudwatch_log_group.lambda.name
     application_log_level = "INFO"
     system_log_level      = "WARN"
+  }
+
+  timeouts {
+    create = "30m"
+    update = "30m"
   }
 
   depends_on = [

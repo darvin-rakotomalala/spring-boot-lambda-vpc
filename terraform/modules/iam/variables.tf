@@ -34,10 +34,9 @@ variable "current_partition" {
   type        = string
 }
 
-variable "db_master_user_secret_arn" {
-  description = "ARN of the RDS-managed Secrets Manager secret holding the master credentials"
+variable "db_credentials_secret_arn" {
+  description = "ARN of the Secrets Manager secret holding the RDS master credentials"
   type        = string
-  sensitive   = true
 }
 
 variable "kms_key_arn" {
@@ -48,16 +47,6 @@ variable "kms_key_arn" {
 variable "rds_proxy_arn" {
   description = "ARN of the RDS Proxy"
   type        = string
-}
-
-variable "proxy_iam_auth" {
-  description = "REQUIRED forces clients to use IAM tokens (no password in the app). DISABLED = password from Secrets Manager."
-  type        = string
-
-  validation {
-    condition     = contains(["DISABLED", "REQUIRED"], var.proxy_iam_auth)
-    error_message = "proxy_iam_auth must be DISABLED or REQUIRED."
-  }
 }
 
 variable "db_username" {

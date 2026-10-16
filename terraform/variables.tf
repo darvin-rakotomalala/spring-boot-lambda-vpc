@@ -141,16 +141,6 @@ variable "db_backup_retention_days" {
   type        = number
 }
 
-variable "proxy_iam_auth" {
-  description = "REQUIRED forces clients to use IAM tokens (no password in the app). DISABLED = password from Secrets Manager."
-  type        = string
-
-  validation {
-    condition     = contains(["DISABLED", "REQUIRED"], var.proxy_iam_auth)
-    error_message = "proxy_iam_auth must be DISABLED or REQUIRED."
-  }
-}
-
 variable "proxy_max_connections_percent" {
   description = "Maximum percentage of the database's max_connections that the RDS Proxy may use."
   type        = number

@@ -139,8 +139,13 @@ resource "aws_iam_role_policy_attachment" "lambda_vpc" {
 
 data "aws_iam_policy_document" "lambda_inline" {
   statement {
-    sid       = "ReadDbSecret"
-    actions   = ["secretsmanager:GetSecretValue"]
+    sid = "ReadDbSecret"
+    # The Secrets Manager JDBC driver's caching client calls DescribeSecret
+    # before GetSecretValue, so both actions are required.
+    actions = [
+      "secretsmanager:GetSecretValue",
+      "secretsmanager:DescribeSecret",
+    ]
     resources = [var.db_master_user_secret_arn]
   }
 

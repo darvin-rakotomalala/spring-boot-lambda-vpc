@@ -18,18 +18,7 @@ spring:
     driver-class-name: com.amazonaws.secretsmanager.sql.AWSSecretsManagerPostgreSQLDriver
     url: jdbc-secretsmanager:postgresql://ce-dev-rds-proxy.proxy-conyo2aki51n.us-east-1.rds.amazonaws.com:5432/lambdaappdb
     username: ce-dev/rds/backend-db-credentials
-    # Small pool: each Lambda instance holds its own pool, and RDS Proxy
-    # multiplexes connections to the database.
-    hikari:
-      maximum-pool-size: 2
-      minimum-idle: 0
-      connection-timeout: 10000   # ms to wait for a connection before failing
-      idle-timeout: 60000         # ms; must be < max-lifetime
-      max-lifetime: 900000        # ms (15 min); keep below RDS Proxy's connection limits
-      initialization-fail-timeout: -1   # don't fail Lambda init if DB is briefly unreachable
-  sql:
-    init:
-      mode: always
+
   main:
     lazy-initialization: 'true'
 

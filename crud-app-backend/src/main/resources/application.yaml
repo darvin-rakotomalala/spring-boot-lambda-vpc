@@ -3,27 +3,20 @@ spring:
     name: crud-app-backend
 
   # ── JPA / Hibernate ──────────────────────────────────────────────────
-  # Nothing in this block may open a DB connection at startup. With Lambda
-  # SnapStart, startup runs while a version is being published (CI and
-  # Terraform both publish), so a connection attempt there fails the publish.
   jpa:
-    # Set explicitly so Spring Boot doesn't open a connection to detect the DB.
-    database: postgresql
-    hibernate:
-      # Schema is managed outside the app (Flyway/Liquibase/one-off script).
-      ddl-auto: none
     properties:
       hibernate:
-        # Required because JDBC metadata access is disabled below.
+        # Note: You can remove dialect in Spring Boot 3+ / Hibernate 6+
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        boot:
-          allow_jdbc_metadata_access: false
         jdbc:
-          batch_size: 50
+          lob:
+            non_contextual_creation: 'true'
+          batch_size: '50'
+    hibernate:
+      ddl-auto: 'update'
 
-  sql:
-    init:
-      mode: never
+  main:
+    lazy-initialization: 'true'
 
   # ── DataSource (credentials are fetched from Secrets Manager) ────────
   datasource:
@@ -48,10 +41,6 @@ spring:
     pathmatch:
       matching-strategy: ant_path_matcher
     throw-exception-if-no-handler-found: true
-
-  web:
-    resources:
-      add-mappings: false
 
 cors:
   allowed:

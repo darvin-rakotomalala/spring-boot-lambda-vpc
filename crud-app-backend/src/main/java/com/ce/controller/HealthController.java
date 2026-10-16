@@ -16,19 +16,8 @@ public class HealthController {
     @GetMapping("/health")
     public ResponseEntity<Map<String, String>> healthCheck() {
         Map<String, String> response = new HashMap<>();
-        // EC2 instance details (IMDS)
-        try (Ec2MetadataClient imds = Ec2MetadataClient.create()) {
-
-            String instanceId = imds.get("/latest/meta-data/instance-id").asString();
-            String privateIp = imds.get("/latest/meta-data/local-ipv4").asString();
-            String az = imds.get("/latest/meta-data/placement/availability-zone").asString();
-
-            response.put("Status", "UP");
-            response.put("Message", "Spring Boot AWS CRUD Application is running");
-            response.put("EC2 instance ID", instanceId);
-            response.put("EC2 private IP", privateIp);
-            response.put("Availability zone", az);
-        }
+        response.put("Status", "UP");
+        response.put("Message", "Spring Boot AWS CRUD Application is running");
         return ResponseEntity.ok(response);
     }
 }

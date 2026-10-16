@@ -16,7 +16,7 @@ spring:
 
   datasource:
     driver-class-name: com.amazonaws.secretsmanager.sql.AWSSecretsManagerPostgreSQLDriver
-    url: jdbc-secretsmanager:postgresql://ce-dev-rds-proxy.proxy-conyo2aki51n.us-east-1.rds.amazonaws.com:5432/lambdaappdb
+    url: jdbc-secretsmanager:postgresql://ce-dev-rds-pg.conyo2aki51n.us-east-1.rds.amazonaws.com:5432/lambdaappdb
     username: ce-dev/rds/backend-db-credentials
 
   main:

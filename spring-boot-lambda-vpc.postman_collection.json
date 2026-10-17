@@ -1,0 +1,245 @@
+{
+	"info": {
+		"_postman_id": "6e96e3cc-449f-4b7f-997a-459984c1b479",
+		"name": "spring-boot-lambda-vpc",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "13359435"
+	},
+	"item": [
+		{
+			"name": "Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://vtbw44nt3c.execute-api.us-east-1.amazonaws.com/dev/health",
+					"protocol": "https",
+					"host": [
+						"vtbw44nt3c",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"dev",
+						"health"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create new Tutorial",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"title\": \"Test POST REST APIs\",\n    \"description\": \"My test POST Build REST APIs\",\n    \"published\": true\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://vtbw44nt3c.execute-api.us-east-1.amazonaws.com/dev/tutorials",
+					"protocol": "https",
+					"host": [
+						"vtbw44nt3c",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"dev",
+						"tutorials"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Rretrieve all Tutorials",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://vtbw44nt3c.execute-api.us-east-1.amazonaws.com/dev/tutorials",
+					"protocol": "https",
+					"host": [
+						"vtbw44nt3c",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"dev",
+						"tutorials"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Retrieve Tutorial by id",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://vtbw44nt3c.execute-api.us-east-1.amazonaws.com/dev/tutorials/1",
+					"protocol": "https",
+					"host": [
+						"vtbw44nt3c",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"dev",
+						"tutorials",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Tutorial",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"title\": \"Test PUT Spring Boot Basics\",\n    \"description\": \"Test PUT Learn Spring Boot\",\n    \"published\": true\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://vtbw44nt3c.execute-api.us-east-1.amazonaws.com/dev/tutorials/1",
+					"protocol": "https",
+					"host": [
+						"vtbw44nt3c",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"dev",
+						"tutorials",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "DeleteTutorial by Id",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "https://vtbw44nt3c.execute-api.us-east-1.amazonaws.com/dev/tutorials/4",
+					"protocol": "https",
+					"host": [
+						"vtbw44nt3c",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"dev",
+						"tutorials",
+						"4"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete all Tutorials",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "https://vtbw44nt3c.execute-api.us-east-1.amazonaws.com/dev/tutorials",
+					"protocol": "https",
+					"host": [
+						"vtbw44nt3c",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"dev",
+						"tutorials"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Find all published Tutorials",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://vtbw44nt3c.execute-api.us-east-1.amazonaws.com/dev/tutorials/published",
+					"protocol": "https",
+					"host": [
+						"vtbw44nt3c",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"dev",
+						"tutorials",
+						"published"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Find Tutorials by title",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://vtbw44nt3c.execute-api.us-east-1.amazonaws.com/dev/tutorials?title=Test",
+					"protocol": "https",
+					"host": [
+						"vtbw44nt3c",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"dev",
+						"tutorials"
+					],
+					"query": [
+						{
+							"key": "title",
+							"value": "Test"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

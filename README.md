@@ -75,7 +75,7 @@ Provisions the infrastructure described in the technical spec:
 7. Lambda configuration
 8. Monitoring
 
-   OUTPUTS
+![1-Outputs.png](Screenshot%20verification/1-Outputs.png)
 
 ### Deployment Workflow
 
@@ -99,8 +99,6 @@ GitHub Actions authenticates to AWS through OIDC, so no long-lived credentials a
 2. Invoke the function through API Gateway and confirm it reads the secret and connects to the database.
 3. Confirm the database is not publicly accessible and that function logs and VPC Flow Logs appear in CloudWatch.
 
-         SCREENSHOT
-
 **Test REST endpoints API Gateway using Postman**
 
 Requests go to `<invoke_url>/{any-path}`, which routes through API Gateway's Lambda proxy integration to the Spring Boot
@@ -108,7 +106,7 @@ app via `StreamLambdaHandler`.
 
 `$ GET <invoke_url>/health`
 
-* Health Check: ```GET https://vtbw44nt3c.execute-api.us-east-1.amazonaws.com/dev/health```
+* Health Check ```GET https://vtbw44nt3c.execute-api.us-east-1.amazonaws.com/dev/health```
 * POST ```https://vtbw44nt3c.execute-api.us-east-1.amazonaws.com/dev/tutorials``` — create new Tutorial
 * GET ```https://vtbw44nt3c.execute-api.us-east-1.amazonaws.com/dev/tutorials``` — retrieve all Tutorials
 * GET ```https://vtbw44nt3c.execute-api.us-east-1.amazonaws.com/dev/tutorials/:id``` — retrieve a Tutorial by ```:id```
